@@ -1,40 +1,16 @@
 'use strict';
 
-var config = {};
-
 //Initial configuration
-Object.defineProperties(config, {
-    fieldWidth: {
-        value: 600,
-        writable: false,
-        configurable: false
-    },
-    fieldHeight: {
-        value: 600,
-        writable: false,
-        configurable: false
-    },
-    snakeLength: {
-        value: 3,
-        writable: false,
-        configurable: false
-    },
-    snakeWeight: {
-        value: 20,
-        writable: false,
-        configurable: false
-    },
-    startX: {
-        value: 200,
-        writable: false,
-        configurable: false
-    },
-    startY: {
-        value: 250,
-        writable: false,
-        configurable: false
-    },
-});
+var config = {
+    fieldWidth: 600,
+    fieldHeight: 600,
+    snakeLength: 3,
+    snakeWeight: 20,
+    startX: 200,
+    startY: 250,
+};
+Object.freeze(config);
+Object.seal(config);
 
 //Game field
 var Field = function(width, height){
@@ -62,14 +38,25 @@ var Part = function(x, y, weight) {
 var Snake = function(length, weight, startX, startY){
     this.length = length;
     this.weight = weight;
-    this.startX = startX;
-    this.startY = startY;
+    this.headX = startX;
+    this.headY = startY;
     this.body = [];
+    this.direction = {};
 };
 
 Snake.prototype.init = function(){
     for(var i=0; i<this.length; i++){
-        this.body[i] = new Part(this.startX, this.startY+=this.weight, this.weight);
+        this.body[i] = new Part(this.headX, this.headY += this.weight, this.weight);
+    }
+    this.direction = {top:[0, this.weight], right:[this.weight, 0], bottom:[0, -this.weight], left:[-this.weight, 0]};
+    Object.freeze(this.direction);
+    Object.seal(this.direction);
+};
+
+Snake.prototype.move = function(direction){
+    for(var i=0; i<this.length; i++){
+        this.body[i].x += direction[0];
+        this.body[i].y += direction[1];
     }
 };
 
@@ -114,8 +101,6 @@ Game.prototype.createPart = function(){
 var game = new Game(config);
 game.init();
 var gameCycle = setInterval(function(){
-    game.snake.startY += 1;
-    game.snake.init();
-    console.log(game.snake.startY);
+    game.snake.move(game.snake.direction.top);
     game.render();
 }, 500);
