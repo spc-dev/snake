@@ -48,15 +48,28 @@ Snake.prototype.init = function(){
     for(var i=0; i<this.length; i++){
         this.body[i] = new Part(this.headX, this.headY += this.weight, this.weight);
     }
-    this.direction = {top:[0, this.weight], right:[this.weight, 0], bottom:[0, -this.weight], left:[-this.weight, 0]};
+
+    this.direction = {top:[0, -this.weight], right:[this.weight, 0], bottom:[0, this.weight], left:[-this.weight, 0]};
     Object.freeze(this.direction);
     Object.seal(this.direction);
+
+    this.currentDirection = this.direction.top;
 };
 
-Snake.prototype.move = function(direction){
+Snake.prototype.changeDirection = function(direction){
+    this.currentDirection = direction;
+};
+
+Snake.prototype.move = function(){
     for(var i=0; i<this.length; i++){
-        this.body[i].x += direction[0];
-        this.body[i].y += direction[1];
+        if(i === 0){
+            this.body[i].x += this.currentDirection[0];
+            this.body[i].y += this.currentDirection[1];
+        }
+        else{
+            this.body[i].x = this.body[i-1].x-this.currentDirection[0];
+            this.body[i].y = this.body[i-1].y-this.currentDirection[1];
+        }
     }
 };
 
@@ -71,6 +84,29 @@ Game.prototype.init = function(){
     this.snake.init();
     this.field.init();
     this.layer_snake = new Konva.Layer();
+    window.onkeydown = function(e){
+        switch (e.keyCode) {
+            case 38:
+                this.game.snake.changeDirection(this.game.snake.direction.top);
+                break;
+            case 39:
+                this.game.snake.changeDirection(this.game.snake.direction.right);
+                break;
+            case 40:
+                this.game.snake.changeDirection(this.game.snake.direction.bottom);
+                break;
+            case 37:
+                this.game.snake.changeDirection(this.game.snake.direction.left);
+                break;
+        }
+    }
+};
+
+Game.prototype.run = function(){
+    var gameCycle = setInterval(function(){
+        game.snake.move();
+        game.render();
+    }, 500);
 };
 
 Game.prototype.render = function(){
@@ -97,10 +133,6 @@ Game.prototype.createPart = function(){
 
 };
 
-
 var game = new Game(config);
 game.init();
-var gameCycle = setInterval(function(){
-    game.snake.move(game.snake.direction.top);
-    game.render();
-}, 500);
+game.run();
