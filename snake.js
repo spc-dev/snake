@@ -7,7 +7,8 @@ var config = {
     snakeLength: 5,
     snakeWeight: 20,
     startX: 200,
-    startY: 250,
+    startY: 280,
+    velocity: 10 //from 1 to 10
 };
 Object.freeze(config);
 Object.seal(config);
@@ -63,8 +64,8 @@ Snake.prototype.changeDirection = function(direction){
 Snake.prototype.move = function(){
     for(var i=this.length-1; i>=0; i--){
         if(i === 0){
-            this.body[i].x += this.currentDirection[0];
-            this.body[i].y += this.currentDirection[1];
+            this.headX = this.body[i].x += this.currentDirection[0];
+            this.headY = this.body[i].y += this.currentDirection[1];
         }
         else{
             this.body[i].x = this.body[i-1].x;
@@ -108,6 +109,14 @@ Game.prototype.init = function(){
     this.snake.init();
     this.field.init();
     this.layer_snake = new Konva.Layer();
+    //calculate velocity of game
+    if(this.config.velocity > 0 && this.config.velocity < 11){
+        this.velocity = 1100-(this.config.velocity*100)
+    }
+    else if(this.config.velocity > 10 && this.config.velocity < 21){
+        this.velocity = 120-((this.config.velocity-10)*10)
+    }
+
     window.onkeydown = function(e){
         switch (e.keyCode) {
             case 38:
@@ -130,11 +139,25 @@ Game.prototype.init = function(){
     }
 };
 
+Game.prototype.endGame = function(){
+    if(this.snake.headX < 0 ||
+        this.snake.headX >= this.config.fieldWidth ||
+        this.snake.headY < 0 ||
+        this.snake.headY >= this.config.fieldHeight){
+        return true;
+    }
+    return false;
+};
+
 Game.prototype.run = function(){
     var gameCycle = setInterval(function(){
-        game.snake.move();
-        game.render();
-    }, 500);
+        this.game.snake.move();
+        if(!this.game.endGame()){
+            this.game.render();
+        }
+        else clearInterval(gameCycle);
+
+    }, this.velocity);
 };
 
 var game = new Game(config);
