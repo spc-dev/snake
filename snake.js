@@ -4,7 +4,7 @@
 var config = {
     fieldWidth: 600,
     fieldHeight: 600,
-    snakeLength: 3,
+    snakeLength: 5,
     snakeWeight: 20,
     startX: 200,
     startY: 250,
@@ -61,14 +61,14 @@ Snake.prototype.changeDirection = function(direction){
 };
 
 Snake.prototype.move = function(){
-    for(var i=0; i<this.length; i++){
+    for(var i=this.length-1; i>=0; i--){
         if(i === 0){
             this.body[i].x += this.currentDirection[0];
             this.body[i].y += this.currentDirection[1];
         }
         else{
-            this.body[i].x = this.body[i-1].x-this.currentDirection[0];
-            this.body[i].y = this.body[i-1].y-this.currentDirection[1];
+            this.body[i].x = this.body[i-1].x;
+            this.body[i].y = this.body[i-1].y;
         }
     }
 };
@@ -78,35 +78,6 @@ var Game = function(config){
     this.config = config;
     this.field = new Field(this.config.fieldWidth, this.config.fieldHeight);
     this.snake = new Snake(this.config.snakeLength, this.config.snakeWeight, this.config.startX, this.config.startY);
-};
-
-Game.prototype.init = function(){
-    this.snake.init();
-    this.field.init();
-    this.layer_snake = new Konva.Layer();
-    window.onkeydown = function(e){
-        switch (e.keyCode) {
-            case 38:
-                this.game.snake.changeDirection(this.game.snake.direction.top);
-                break;
-            case 39:
-                this.game.snake.changeDirection(this.game.snake.direction.right);
-                break;
-            case 40:
-                this.game.snake.changeDirection(this.game.snake.direction.bottom);
-                break;
-            case 37:
-                this.game.snake.changeDirection(this.game.snake.direction.left);
-                break;
-        }
-    }
-};
-
-Game.prototype.run = function(){
-    var gameCycle = setInterval(function(){
-        game.snake.move();
-        game.render();
-    }, 500);
 };
 
 Game.prototype.render = function(){
@@ -131,6 +102,39 @@ Game.prototype.render = function(){
 
 Game.prototype.createPart = function(){
 
+};
+
+Game.prototype.init = function(){
+    this.snake.init();
+    this.field.init();
+    this.layer_snake = new Konva.Layer();
+    window.onkeydown = function(e){
+        switch (e.keyCode) {
+            case 38:
+                if (this.game.snake.currentDirection !== this.game.snake.direction.bottom)
+                    this.game.snake.changeDirection(this.game.snake.direction.top);
+                break;
+            case 39:
+                if (this.game.snake.currentDirection !== this.game.snake.direction.left)
+                    this.game.snake.changeDirection(this.game.snake.direction.right);
+                break;
+            case 40:
+                if (this.game.snake.currentDirection !== this.game.snake.direction.top)
+                    this.game.snake.changeDirection(this.game.snake.direction.bottom);
+                break;
+            case 37:
+                if (this.game.snake.currentDirection !== this.game.snake.direction.right)
+                    this.game.snake.changeDirection(this.game.snake.direction.left);
+                break;
+        }
+    }
+};
+
+Game.prototype.run = function(){
+    var gameCycle = setInterval(function(){
+        game.snake.move();
+        game.render();
+    }, 500);
 };
 
 var game = new Game(config);
