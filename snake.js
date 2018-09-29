@@ -2,31 +2,16 @@
 
 //Initial configuration
 var config = {
-    fieldWidth: 600,
-    fieldHeight: 600,
+    fieldWidth: 30, //width per part of snake
+    fieldHeight: 30, //height per part of snake
     snakeLength: 5,
     snakeWeight: 20,
-    startX: 200,
-    startY: 280,
-    velocity: 10 //from 1 to 10
+    startX: 10, //per part of snake
+    startY: 5, //per part of snake
+    velocity: 9 //from 1 to 10
 };
 Object.freeze(config);
 Object.seal(config);
-
-//Game field
-var Field = function(width, height){
-    this.width = width;
-    this.height = height;
-};
-
-//Initialization of field
-Field.prototype.init = function(){
-    this.canvas = new Konva.Stage({
-        container: 'field',
-        width: this.width,
-        height: this.height
-    });
-};
 
 //Part of Snake
 var Part = function(x, y, weight) {
@@ -57,8 +42,20 @@ Snake.prototype.init = function(){
     this.currentDirection = this.direction.top;
 };
 
-Snake.prototype.changeDirection = function(direction){
+Snake.prototype.changeDirection = function(direction) {
     this.currentDirection = direction;
+};
+
+Snake.prototype.getNextCoordinate = function(){
+    return [
+        this.headX + this.currentDirection[0],
+        this.headY + this.currentDirection[1]
+    ];
+};
+
+Snake.prototype.addPart = function(part){
+    this.body.unshift(Object.assign(part));
+    this.length++;
 };
 
 Snake.prototype.move = function(){
@@ -74,41 +71,39 @@ Snake.prototype.move = function(){
     }
 };
 
+//Game field
+var Field = function(width, height){
+    this.width = width;
+    this.height = height;
+};
+
+//Initialization of field
+Field.prototype.init = function(){
+    this.canvas = new Konva.Stage({
+        container: 'field',
+        width: this.width,
+        height: this.height
+    });
+};
+
 //Class Game
 var Game = function(config){
     this.config = config;
-    this.field = new Field(this.config.fieldWidth, this.config.fieldHeight);
-    this.snake = new Snake(this.config.snakeLength, this.config.snakeWeight, this.config.startX, this.config.startY);
+    this.field = new Field(this.normalization(this.config.fieldWidth), this.normalization(this.config.fieldHeight));
+    this.snake = new Snake(this.config.snakeLength, this.config.snakeWeight, this.normalization(this.config.startX), this.normalization(this.config.startY));
 };
 
-Game.prototype.render = function(){
-    this.layer_snake.destroyChildren();
-
-    for(var i=0; i<this.snake.length; i++){
-        this.layer_snake.add(
-            new Konva.Rect({
-                x: this.snake.body[i].x,
-                y: this.snake.body[i].y,
-                width: this.snake.body[i].weight,
-                height: this.snake.body[i].weight,
-                fill: 'gray',
-                stroke: 'black',
-                strokeWidth: 1
-            })
-        );
-    }
-    this.field.canvas.add(this.layer_snake);
-    this.layer_snake.draw();
-};
-
-Game.prototype.createPart = function(){
-
+Game.prototype.normalization = function(value){
+    return value*this.config.snakeWeight;
 };
 
 Game.prototype.init = function(){
     this.snake.init();
     this.field.init();
-    this.layer_snake = new Konva.Layer();
+    this.layerSnake = new Konva.Layer();
+    this.layerFreePart = new Konva.Layer();
+    this.createFreePart();
+
     //calculate velocity of game
     if(this.config.velocity > 0 && this.config.velocity < 11){
         this.velocity = 1100-(this.config.velocity*100)
@@ -139,11 +134,59 @@ Game.prototype.init = function(){
     }
 };
 
+Game.prototype.render = function(){
+    this.layerSnake.destroyChildren();
+
+    for(var i=0; i<this.snake.length; i++){
+        this.layerSnake.add(
+            new Konva.Rect({
+                x: this.snake.body[i].x,
+                y: this.snake.body[i].y,
+                width: this.snake.body[i].weight,
+                height: this.snake.body[i].weight,
+                fill: 'gray',
+                stroke: 'black',
+                strokeWidth: 1
+            })
+        );
+    }
+    this.field.canvas.add(this.layerSnake);
+    this.field.canvas.add(this.layerFreePart);
+    this.layerSnake.draw();
+    this.layerFreePart.draw();
+};
+
+Game.prototype.randomInteger = function(min, max){
+    var rand = min - 0.5 + Math.random() * (max - min + 1);
+    rand = Math.round(rand);
+    return rand;
+};
+
+Game.prototype.createFreePart = function(){
+    this.freePart = new Part(
+        this.normalization(this.randomInteger(0, this.config.fieldWidth-1)),
+        this.normalization(this.randomInteger(0, this.config.fieldHeight-1)),
+        this.config.snakeWeight
+    );
+    this.layerFreePart.destroyChildren();
+    this.layerFreePart.add(
+        new Konva.Rect({
+            x: this.freePart.x,
+            y: this.freePart.y,
+            width: this.freePart.weight,
+            height: this.freePart.weight,
+            fill: 'gray',
+            stroke: 'black',
+            strokeWidth: 1
+        })
+    );
+};
+
 Game.prototype.endGame = function(){
     if(this.snake.headX < 0 ||
-        this.snake.headX >= this.config.fieldWidth ||
+        this.snake.headX >= this.normalization(this.config.fieldWidth) ||
         this.snake.headY < 0 ||
-        this.snake.headY >= this.config.fieldHeight){
+        this.snake.headY >= this.normalization(this.config.fieldHeight)){
         return true;
     }
     return false;
@@ -153,6 +196,13 @@ Game.prototype.run = function(){
     var gameCycle = setInterval(function(){
         this.game.snake.move();
         if(!this.game.endGame()){
+            var next = this.game.snake.getNextCoordinate();
+            console.log(this.game.snake.body);
+            if(next[0] === this.game.freePart.x && next[1] === this.game.freePart.y){
+                this.game.snake.addPart(this.game.freePart);
+                this.game.createFreePart();
+                console.log(this.game.snake.body);
+            }
             this.game.render();
         }
         else clearInterval(gameCycle);
