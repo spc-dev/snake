@@ -2,31 +2,16 @@
 
 //Initial configuration
 var config = {
-    fieldWidth: 600,
-    fieldHeight: 600,
-    snakeLength: 5,
+    fieldWidth: 30, //width per part of snake
+    fieldHeight: 30, //height per part of snake
+    snakeLength: 10,
     snakeWeight: 20,
-    startX: 200,
-    startY: 280,
-    velocity: 10 //from 1 to 10
+    startX: 10, //per part of snake
+    startY: 5, //per part of snake
+    velocity: 9 //from 1 to 10
 };
 Object.freeze(config);
 Object.seal(config);
-
-//Game field
-var Field = function(width, height){
-    this.width = width;
-    this.height = height;
-};
-
-//Initialization of field
-Field.prototype.init = function(){
-    this.canvas = new Konva.Stage({
-        container: 'field',
-        width: this.width,
-        height: this.height
-    });
-};
 
 //Part of Snake
 var Part = function(x, y, weight) {
@@ -57,8 +42,20 @@ Snake.prototype.init = function(){
     this.currentDirection = this.direction.top;
 };
 
-Snake.prototype.changeDirection = function(direction){
+Snake.prototype.changeDirection = function(direction) {
     this.currentDirection = direction;
+};
+
+Snake.prototype.getNextCoordinate = function(){
+    return [
+        this.headX + this.currentDirection[0],
+        this.headY + this.currentDirection[1]
+    ];
+};
+
+Snake.prototype.addPart = function(part){
+    this.body.unshift(Object.assign(part));
+    this.length++;
 };
 
 Snake.prototype.move = function(){
@@ -74,18 +71,85 @@ Snake.prototype.move = function(){
     }
 };
 
+//Game field
+var Field = function(width, height){
+    this.width = width;
+    this.height = height;
+};
+
+//Initialization of field
+Field.prototype.init = function(){
+    this.canvas = new Konva.Stage({
+        container: 'field',
+        width: this.width,
+        height: this.height
+    });
+};
+
 //Class Game
 var Game = function(config){
     this.config = config;
-    this.field = new Field(this.config.fieldWidth, this.config.fieldHeight);
-    this.snake = new Snake(this.config.snakeLength, this.config.snakeWeight, this.config.startX, this.config.startY);
+    this.field = new Field(this.normalization(this.config.fieldWidth), this.normalization(this.config.fieldHeight));
+    this.snake = new Snake(this.config.snakeLength, this.config.snakeWeight, this.normalization(this.config.startX), this.normalization(this.config.startY));
+};
+
+Game.prototype.normalization = function(value){
+    return value*this.config.snakeWeight;
+};
+
+Game.prototype.init = function(){
+    this.snake.init();
+    this.field.init();
+    this.layerSnake = new Konva.Layer();
+    this.layerFreePart = new Konva.Layer();
+    this.flagPress = true;
+    this.createFreePart();
+
+    //calculate velocity of game
+    if(this.config.velocity > 0 && this.config.velocity < 11){
+        this.velocity = 1100-(this.config.velocity*100)
+    }
+    else if(this.config.velocity > 10 && this.config.velocity < 21){
+        this.velocity = 120-((this.config.velocity-10)*10)
+    }
+
+    window.onkeydown = function(e){
+        if(this.game.flagPress) {
+            switch (e.keyCode) {
+                case 38:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.bottom) {
+                        this.game.snake.changeDirection(this.game.snake.direction.top);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 39:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.left) {
+                        this.game.snake.changeDirection(this.game.snake.direction.right);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 40:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.top) {
+                        this.game.snake.changeDirection(this.game.snake.direction.bottom);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 37:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.right) {
+                        this.game.snake.changeDirection(this.game.snake.direction.left);
+                        this.game.flagPress = false;
+                    }
+                    break;
+            }
+        }
+    }
 };
 
 Game.prototype.render = function(){
-    this.layer_snake.destroyChildren();
+    this.layerSnake.destroyChildren();
 
     for(var i=0; i<this.snake.length; i++){
-        this.layer_snake.add(
+        this.layerSnake.add(
             new Konva.Rect({
                 x: this.snake.body[i].x,
                 y: this.snake.body[i].y,
@@ -97,54 +161,49 @@ Game.prototype.render = function(){
             })
         );
     }
-    this.field.canvas.add(this.layer_snake);
-    this.layer_snake.draw();
+    this.field.canvas.add(this.layerSnake);
+    this.field.canvas.add(this.layerFreePart);
+    this.layerSnake.draw();
+    this.layerFreePart.draw();
 };
 
-Game.prototype.createPart = function(){
-
+Game.prototype.randomInteger = function(min, max){
+    var rand = min - 0.5 + Math.random() * (max - min + 1);
+    rand = Math.round(rand);
+    return rand;
 };
 
-Game.prototype.init = function(){
-    this.snake.init();
-    this.field.init();
-    this.layer_snake = new Konva.Layer();
-    //calculate velocity of game
-    if(this.config.velocity > 0 && this.config.velocity < 11){
-        this.velocity = 1100-(this.config.velocity*100)
-    }
-    else if(this.config.velocity > 10 && this.config.velocity < 21){
-        this.velocity = 120-((this.config.velocity-10)*10)
-    }
-
-    window.onkeydown = function(e){
-        switch (e.keyCode) {
-            case 38:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.bottom)
-                    this.game.snake.changeDirection(this.game.snake.direction.top);
-                break;
-            case 39:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.left)
-                    this.game.snake.changeDirection(this.game.snake.direction.right);
-                break;
-            case 40:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.top)
-                    this.game.snake.changeDirection(this.game.snake.direction.bottom);
-                break;
-            case 37:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.right)
-                    this.game.snake.changeDirection(this.game.snake.direction.left);
-                break;
-        }
-    }
+Game.prototype.createFreePart = function(){
+    this.freePart = new Part(
+        this.normalization(this.randomInteger(0, this.config.fieldWidth-1)),
+        this.normalization(this.randomInteger(0, this.config.fieldHeight-1)),
+        this.config.snakeWeight
+    );
+    this.layerFreePart.destroyChildren();
+    this.layerFreePart.add(
+        new Konva.Rect({
+            x: this.freePart.x,
+            y: this.freePart.y,
+            width: this.freePart.weight,
+            height: this.freePart.weight,
+            fill: 'gray',
+            stroke: 'black',
+            strokeWidth: 1
+        })
+    );
 };
 
 Game.prototype.endGame = function(){
     if(this.snake.headX < 0 ||
-        this.snake.headX >= this.config.fieldWidth ||
+        this.snake.headX >= this.normalization(this.config.fieldWidth) ||
         this.snake.headY < 0 ||
-        this.snake.headY >= this.config.fieldHeight){
+        this.snake.headY >= this.normalization(this.config.fieldHeight)){
         return true;
+    }
+    for(var i=1; i < this.snake.length; i++){
+        if(this.snake.headX === this.snake.body[i].x && this.snake.headY === this.snake.body[i].y){
+            return true;
+        }
     }
     return false;
 };
@@ -153,7 +212,14 @@ Game.prototype.run = function(){
     var gameCycle = setInterval(function(){
         this.game.snake.move();
         if(!this.game.endGame()){
+            var next = this.game.snake.getNextCoordinate();
+            if((next[0] === this.game.freePart.x && next[1] === this.game.freePart.y) ||
+                (this.game.snake.headX === this.game.freePart.x && this.game.snake.headY === this.game.freePart.y)){
+                this.game.snake.addPart(this.game.freePart);
+                this.game.createFreePart();
+            }
             this.game.render();
+            this.game.flagPress = true;
         }
         else clearInterval(gameCycle);
 
