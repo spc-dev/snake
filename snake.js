@@ -4,7 +4,7 @@
 var config = {
     fieldWidth: 30, //width per part of snake
     fieldHeight: 30, //height per part of snake
-    snakeLength: 5,
+    snakeLength: 10,
     snakeWeight: 20,
     startX: 10, //per part of snake
     startY: 5, //per part of snake
@@ -102,6 +102,7 @@ Game.prototype.init = function(){
     this.field.init();
     this.layerSnake = new Konva.Layer();
     this.layerFreePart = new Konva.Layer();
+    this.flagPress = true;
     this.createFreePart();
 
     //calculate velocity of game
@@ -113,23 +114,33 @@ Game.prototype.init = function(){
     }
 
     window.onkeydown = function(e){
-        switch (e.keyCode) {
-            case 38:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.bottom)
-                    this.game.snake.changeDirection(this.game.snake.direction.top);
-                break;
-            case 39:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.left)
-                    this.game.snake.changeDirection(this.game.snake.direction.right);
-                break;
-            case 40:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.top)
-                    this.game.snake.changeDirection(this.game.snake.direction.bottom);
-                break;
-            case 37:
-                if (this.game.snake.currentDirection !== this.game.snake.direction.right)
-                    this.game.snake.changeDirection(this.game.snake.direction.left);
-                break;
+        if(this.game.flagPress) {
+            switch (e.keyCode) {
+                case 38:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.bottom) {
+                        this.game.snake.changeDirection(this.game.snake.direction.top);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 39:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.left) {
+                        this.game.snake.changeDirection(this.game.snake.direction.right);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 40:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.top) {
+                        this.game.snake.changeDirection(this.game.snake.direction.bottom);
+                        this.game.flagPress = false;
+                    }
+                    break;
+                case 37:
+                    if (this.game.snake.currentDirection !== this.game.snake.direction.right) {
+                        this.game.snake.changeDirection(this.game.snake.direction.left);
+                        this.game.flagPress = false;
+                    }
+                    break;
+            }
         }
     }
 };
@@ -189,6 +200,11 @@ Game.prototype.endGame = function(){
         this.snake.headY >= this.normalization(this.config.fieldHeight)){
         return true;
     }
+    for(var i=1; i < this.snake.length; i++){
+        if(this.snake.headX === this.snake.body[i].x && this.snake.headY === this.snake.body[i].y){
+            return true;
+        }
+    }
     return false;
 };
 
@@ -197,13 +213,13 @@ Game.prototype.run = function(){
         this.game.snake.move();
         if(!this.game.endGame()){
             var next = this.game.snake.getNextCoordinate();
-            console.log(this.game.snake.body);
-            if(next[0] === this.game.freePart.x && next[1] === this.game.freePart.y){
+            if((next[0] === this.game.freePart.x && next[1] === this.game.freePart.y) ||
+                (this.game.snake.headX === this.game.freePart.x && this.game.snake.headY === this.game.freePart.y)){
                 this.game.snake.addPart(this.game.freePart);
                 this.game.createFreePart();
-                console.log(this.game.snake.body);
             }
             this.game.render();
+            this.game.flagPress = true;
         }
         else clearInterval(gameCycle);
 
